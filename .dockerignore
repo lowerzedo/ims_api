@@ -1,0 +1,15 @@
+__pycache__/
+*.py[cod]
+*.log
+.env
+.env.*
+.git
+.gitignore
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+staticfiles/
+media/
+README.md
+Requirements V4.pdf
+Requirements V4.txt

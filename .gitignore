@@ -1,0 +1,44 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Environments
+.env
+.env.*
+!.env.example
+.venv/
+venv/
+
+# Byte-compiled / optimized / DLL files
+*.so
+
+# Pytest
+.pytest_cache/
+.coverage
+htmlcov/
+
+# MyPy
+.mypy_cache/
+.dmypy.json
+
+# Ruff / lint
+.ruff_cache/
+
+# IDEs & Editors
+.vscode/
+.idea/
+*.swp
+
+# Django
+staticfiles/
+media/
+
+# Coverage reports
+coverage.xml
+
+# Docker
+*.log
+
+# macOS
+.DS_Store
