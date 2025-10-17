@@ -20,6 +20,7 @@ urlpatterns = [
     path(settings.ADMIN_URL, admin.site.urls),
     path("api/health/", health_check, name="health-check"),
     path("api/v1/lookups/", include("apps.lookups.urls", namespace="lookups")),
+    path("api/v1/", include("apps.clients.urls", namespace="clients")),
     path("api/schema/", SpectacularAPIView.as_view(), name="schema"),
     path(
         "api/docs/swagger/",
