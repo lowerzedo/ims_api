@@ -96,21 +96,119 @@ class ClientSerializer(serializers.ModelSerializer):
         )
         read_only_fields = ("id", "is_active", "created_at", "updated_at")
 
-    def _replace_related(self, client: Client, field: str, items: list[dict[str, Any]]) -> None:
-        manager = getattr(client, field)
-        manager.all().delete()
-        if field == "dbas":
-            for item in items:
-                manager.create(dba_name=item["dba_name"])
-        elif field == "contacts":
-            for item in items:
-                contact_type = item.pop("contact_type")
-                manager.create(contact_type=contact_type, **item)
-        elif field == "addresses":
-            for item in items:
-                address_data = item.pop("address")
-                address = Address.objects.create(**address_data)
-                manager.create(address=address, **item)
+    def _sync_dbas(self, client: Client, items: list[dict[str, Any]], *, clear_existing: bool) -> None:
+        manager = client.dbas
+        existing = {str(obj.id): obj for obj in manager.all()}
+
+        if clear_existing:
+            manager.all().delete()
+            existing = {}
+
+        for raw in items:
+            data = dict(raw)
+            obj_id = str(data.pop("id", "") or "")
+            is_active = data.pop("is_active", True)
+            dba_name = data.get("dba_name")
+
+            if obj_id and obj_id in existing and not clear_existing:
+                obj = existing[obj_id]
+                if dba_name is not None:
+                    obj.dba_name = dba_name
+                obj.is_active = is_active
+                obj.save(update_fields=["dba_name", "is_active", "updated_at"])
+                continue
+
+            if not dba_name:
+                raise serializers.ValidationError("dba_name is required for client DBAs.")
+            manager.create(dba_name=dba_name, is_active=is_active)
+
+    def _sync_contacts(self, client: Client, items: list[dict[str, Any]], *, clear_existing: bool) -> None:
+        manager = client.contacts
+        existing = {str(obj.id): obj for obj in manager.all()}
+
+        if clear_existing:
+            manager.all().delete()
+            existing = {}
+
+        for raw in items:
+            data = dict(raw)
+            obj_id = str(data.pop("id", "") or "")
+            is_active = data.pop("is_active", True)
+            contact_type = data.pop("contact_type", None)
+
+            if obj_id and obj_id in existing and not clear_existing:
+                obj = existing[obj_id]
+                for field in ["first_name", "last_name", "email", "phone_number", "nickname"]:
+                    if field in data:
+                        setattr(obj, field, data[field])
+                if contact_type is not None:
+                    obj.contact_type = contact_type
+                obj.is_active = is_active
+                obj.save(update_fields=[
+                    "first_name",
+                    "last_name",
+                    "email",
+                    "phone_number",
+                    "nickname",
+                    "contact_type",
+                    "is_active",
+                    "updated_at",
+                ])
+                continue
+
+            if contact_type is None:
+                raise serializers.ValidationError("contact_type_id is required for contacts.")
+            manager.create(contact_type=contact_type, is_active=is_active, **data)
+
+    def _delete_address_link(self, link: ClientAddress) -> None:
+        address = link.address
+        link.delete()
+        if not address.client_links.exists():
+            address.delete()
+
+    def _sync_addresses(self, client: Client, items: list[dict[str, Any]], *, clear_existing: bool) -> None:
+        links = client.addresses.select_related("address")
+        existing = {str(link.id): link for link in links}
+
+        if clear_existing:
+            for link in links:
+                self._delete_address_link(link)
+            existing = {}
+
+        for raw in items:
+            data = dict(raw)
+            link_id = str(data.pop("id", "") or "")
+            is_active = data.pop("is_active", True)
+            address_type = data.pop("address_type", None)
+            address_payload = data.pop("address", None)
+
+            if link_id and link_id in existing and not clear_existing:
+                link = existing[link_id]
+                if address_payload:
+                    address = link.address
+                    for field in ["street_address", "city", "state", "zip_code"]:
+                        if field in address_payload:
+                            setattr(address, field, address_payload[field])
+                    address.save(update_fields=["street_address", "city", "state", "zip_code", "updated_at"])
+                if address_type is not None:
+                    link.address_type = address_type
+                if "rating" in data:
+                    link.rating = data["rating"]
+                link.is_active = is_active
+                link.save(update_fields=["address_type", "rating", "is_active", "updated_at"])
+                continue
+
+            if not address_payload or address_type is None:
+                raise serializers.ValidationError(
+                    "address and address_type_id are required when creating a client address."
+                )
+            address = Address.objects.create(**address_payload)
+            client.addresses.create(
+                address=address,
+                address_type=address_type,
+                rating=data.get("rating"),
+                is_active=is_active,
+            )
 
     def create(self, validated_data: dict[str, Any]) -> Client:
         dbas_data = validated_data.pop("dbas", [])
@@ -119,9 +217,9 @@ class ClientSerializer(serializers.ModelSerializer):
 
         with transaction.atomic():
             client = Client.objects.create(**validated_data)
-            self._replace_related(client, "dbas", dbas_data)
-            self._replace_related(client, "contacts", contacts_data)
-            self._replace_related(client, "addresses", addresses_data)
+            self._sync_dbas(client, dbas_data, clear_existing=True)
+            self._sync_contacts(client, contacts_data, clear_existing=True)
+            self._sync_addresses(client, addresses_data, clear_existing=True)
         return client
 
     def update(self, instance: Client, validated_data: dict[str, Any]) -> Client:
@@ -135,11 +233,14 @@ class ClientSerializer(serializers.ModelSerializer):
         with transaction.atomic():
             instance.save()
             if dbas_data is not None:
-                self._replace_related(instance, "dbas", dbas_data)
+                clear = not self.partial or not dbas_data
+                self._sync_dbas(instance, dbas_data, clear_existing=clear)
             if contacts_data is not None:
-                self._replace_related(instance, "contacts", contacts_data)
+                clear = not self.partial or not contacts_data
+                self._sync_contacts(instance, contacts_data, clear_existing=clear)
             if addresses_data is not None:
-                self._replace_related(instance, "addresses", addresses_data)
+                clear = not self.partial or not addresses_data
+                self._sync_addresses(instance, addresses_data, clear_existing=clear)
         return instance
 
     def to_internal_value(self, data: Any) -> Any:
