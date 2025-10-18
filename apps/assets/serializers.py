@@ -8,11 +8,11 @@ from rest_framework import serializers
 
 from apps.clients.models import Address, Client
 from apps.clients.serializers import AddressSerializer
-from apps.lookups.models import VehicleType
+from apps.lookups.models import LicenseClass, VehicleType
 from apps.lookups.serializers import LookupSerializer
 from apps.policies.models import Policy
 
-from .models import LossPayee, PolicyVehicle, Vehicle
+from .models import Driver, LossPayee, PolicyDriver, PolicyVehicle, Vehicle
 
 
 class LossPayeeSerializer(serializers.ModelSerializer):
@@ -181,6 +181,107 @@ class PolicyVehicleSerializer(serializers.ModelSerializer):
         return PolicyVehicle.objects.create(**validated_data)
 
     def update(self, instance: PolicyVehicle, validated_data: dict[str, Any]) -> PolicyVehicle:
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+        instance.save()
+        return instance
+
+
+class DriverSerializer(serializers.ModelSerializer):
+    client = ClientSummarySerializer(read_only=True)
+    client_id = serializers.PrimaryKeyRelatedField(
+        queryset=Client.objects.filter(is_active=True),
+        source="client",
+        write_only=True,
+    )
+    license_class = LookupSerializer(read_only=True)
+    license_class_id = serializers.PrimaryKeyRelatedField(
+        queryset=LicenseClass.objects.filter(is_active=True),
+        source="license_class",
+        write_only=True,
+    )
+
+    class Meta:
+        model = Driver
+        fields = (
+            "id",
+            "client",
+            "client_id",
+            "first_name",
+            "middle_name",
+            "last_name",
+            "date_of_birth",
+            "license_number",
+            "license_state",
+            "license_class",
+            "license_class_id",
+            "issue_date",
+            "hire_date",
+            "violations",
+            "accidents",
+            "is_active",
+            "created_at",
+            "updated_at",
+        )
+        read_only_fields = (
+            "id",
+            "client",
+            "license_class",
+            "is_active",
+            "created_at",
+            "updated_at",
+        )
+
+    def create(self, validated_data: dict[str, Any]) -> Driver:
+        return Driver.objects.create(**validated_data)
+
+    def update(self, instance: Driver, validated_data: dict[str, Any]) -> Driver:
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+        instance.save()
+        return instance
+
+
+class PolicyDriverSerializer(serializers.ModelSerializer):
+    policy = serializers.UUIDField(source="policy.id", read_only=True)
+    policy_id = serializers.PrimaryKeyRelatedField(
+        queryset=Policy.objects.filter(is_active=True),
+        source="policy",
+        write_only=True,
+    )
+    driver = DriverSerializer(read_only=True)
+    driver_id = serializers.PrimaryKeyRelatedField(
+        queryset=Driver.objects.filter(is_active=True),
+        source="driver",
+        write_only=True,
+    )
+
+    class Meta:
+        model = PolicyDriver
+        fields = (
+            "id",
+            "policy",
+            "policy_id",
+            "driver",
+            "driver_id",
+            "status",
+            "is_active",
+            "created_at",
+            "updated_at",
+        )
+        read_only_fields = (
+            "id",
+            "policy",
+            "driver",
+            "is_active",
+            "created_at",
+            "updated_at",
+        )
+
+    def create(self, validated_data: dict[str, Any]) -> PolicyDriver:
+        return PolicyDriver.objects.create(**validated_data)
+
+    def update(self, instance: PolicyDriver, validated_data: dict[str, Any]) -> PolicyDriver:
         for attr, value in validated_data.items():
             setattr(instance, attr, value)
         instance.save()

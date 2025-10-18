@@ -4,7 +4,7 @@ from rest_framework.test import APIClient
 
 from apps.accounts.models import User
 from apps.clients.models import Address, Client
-from apps.lookups.models import VehicleType
+from apps.lookups.models import LicenseClass, VehicleType
 from apps.policies.models import CarrierProduct, GeneralAgent, Policy
 from apps.lookups.models import (
     BusinessType,
@@ -28,6 +28,13 @@ def user(db):
 @pytest.fixture
 def client(user):
     return Client.objects.create(company_name="Road Runner", created_by=user, updated_by=user)
+
+
+@pytest.fixture
+def license_class(db):
+    license_class = LicenseClass.objects.filter(is_active=True).first()
+    assert license_class is not None, "Expected seeded license classes"
+    return license_class
 
 
 @pytest.fixture
@@ -198,4 +205,61 @@ def test_assign_vehicle_to_policy(api_client, user, client, vehicle_type, policy
 
     # Ensure unique constraint prevents duplicates
     dup_response = api_client.post(url, payload, format="json")
+    assert dup_response.status_code == 400
+
+
+@pytest.mark.django_db
+def test_create_driver(api_client, user, client, license_class):
+    api_client.force_authenticate(user=user)
+    url = reverse("assets:driver-list")
+    payload = {
+        "client_id": str(client.id),
+        "first_name": "Jane",
+        "middle_name": "Q",
+        "last_name": "Doe",
+        "date_of_birth": "1990-03-15",
+        "license_number": "TX1234567",
+        "license_state": "TX",
+        "license_class_id": str(license_class.id),
+        "issue_date": "2020-01-01",
+        "hire_date": "2023-05-01",
+        "violations": 1,
+        "accidents": 0,
+    }
+    response = api_client.post(url, payload, format="json")
+    assert response.status_code == 201
+    data = response.json()
+    assert data["first_name"] == "Jane"
+    assert data["license_class"]["id"] == str(license_class.id)
+
+
+@pytest.mark.django_db
+def test_assign_driver_to_policy(api_client, user, client, license_class, policy):
+    api_client.force_authenticate(user=user)
+    driver_url = reverse("assets:driver-list")
+    driver_payload = {
+        "client_id": str(client.id),
+        "first_name": "John",
+        "last_name": "Smith",
+        "date_of_birth": "1985-07-04",
+        "license_number": "CA7654321",
+        "license_state": "CA",
+        "license_class_id": str(license_class.id),
+    }
+    driver_response = api_client.post(driver_url, driver_payload, format="json")
+    assert driver_response.status_code == 201
+    driver_id = driver_response.json()["id"]
+
+    policy_driver_url = reverse("assets:policy-driver-list")
+    payload = {
+        "policy_id": str(policy.id),
+        "driver_id": driver_id,
+        "status": "active",
+    }
+    response = api_client.post(policy_driver_url, payload, format="json")
+    assert response.status_code == 201
+    data = response.json()
+    assert data["driver"]["id"] == driver_id
+
+    dup_response = api_client.post(policy_driver_url, payload, format="json")
     assert dup_response.status_code == 400

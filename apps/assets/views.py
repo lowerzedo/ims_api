@@ -6,8 +6,14 @@ from rest_framework import serializers
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.viewsets import ModelViewSet
 
-from .models import LossPayee, PolicyVehicle, Vehicle
-from .serializers import LossPayeeSerializer, PolicyVehicleSerializer, VehicleSerializer
+from .models import Driver, LossPayee, PolicyDriver, PolicyVehicle, Vehicle
+from .serializers import (
+    DriverSerializer,
+    LossPayeeSerializer,
+    PolicyDriverSerializer,
+    PolicyVehicleSerializer,
+    VehicleSerializer,
+)
 
 
 class BaseSoftDeleteViewSet(ModelViewSet):
@@ -79,3 +85,52 @@ class PolicyVehicleViewSet(BaseSoftDeleteViewSet):
             serializer.save()
         except IntegrityError as exc:  # pragma: no cover - defensive
             raise serializers.ValidationError("Vehicle is already assigned to this policy.") from exc
+
+
+class DriverViewSet(BaseSoftDeleteViewSet):
+    queryset = Driver.objects.select_related("client", "license_class")
+    serializer_class = DriverSerializer
+    search_fields = (
+        "first_name",
+        "last_name",
+        "license_number",
+        "client__company_name",
+    )
+    filterset_fields = {
+        "client": ["exact"],
+        "license_class": ["exact"],
+        "license_state": ["exact"],
+        "hire_date": ["exact", "gte", "lte"],
+    }
+    ordering_fields = ("last_name", "first_name", "created_at", "updated_at")
+    ordering = ("last_name", "first_name")
+
+    def perform_create(self, serializer: DriverSerializer) -> None:
+        try:
+            serializer.save()
+        except IntegrityError as exc:  # pragma: no cover - defensive
+            raise serializers.ValidationError(
+                "Driver with this license number already exists for the client."
+            ) from exc
+
+
+class PolicyDriverViewSet(BaseSoftDeleteViewSet):
+    queryset = PolicyDriver.objects.select_related(
+        "policy",
+        "driver",
+        "driver__client",
+    )
+    serializer_class = PolicyDriverSerializer
+    filterset_fields = {
+        "policy": ["exact"],
+        "driver": ["exact"],
+        "status": ["exact"],
+    }
+    ordering_fields = ("created_at", "updated_at")
+    ordering = ("-created_at",)
+
+    def perform_create(self, serializer: PolicyDriverSerializer) -> None:
+        try:
+            serializer.save()
+        except IntegrityError as exc:  # pragma: no cover - defensive
+            raise serializers.ValidationError("Driver is already assigned to this policy.") from exc

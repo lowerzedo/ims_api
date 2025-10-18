@@ -259,6 +259,11 @@ Base path: `/api/v1/assets/`
 | `/api/v1/assets/vehicles/{id}/` | `GET`, `PATCH`, `PUT`, `DELETE` | Manage a specific vehicle or mark it inactive (soft delete). |
 | `/api/v1/assets/policy-vehicles/` | `GET`, `POST` | List policy assignments or attach a vehicle to a policy along with garaging address. |
 | `/api/v1/assets/policy-vehicles/{id}/` | `GET`, `PATCH`, `PUT`, `DELETE` | Update assignment status/dates or soft-delete the linkage. |
+| `/api/v1/assets/drivers/` | `GET`, `POST` | List drivers or create a new record tied to a client. Requires license information. |
+| `/api/v1/assets/drivers/{id}/` | `GET`, `PATCH`, `PUT`, `DELETE` | Retrieve/update driver details or soft-delete the driver. |
+| `/api/v1/assets/policy-drivers/` | `GET`, `POST` | List driver assignments or attach a driver to a policy. |
+| `/api/v1/assets/policy-drivers/{id}/` | `GET`, `PATCH`, `PUT`, `DELETE` | Update assignment status or soft-delete the linkage. |
+
 
 ### Vehicle Payload Example
 
@@ -275,6 +280,20 @@ Base path: `/api/v1/assets/`
   "pd_amount": "120000.00",
   "deductible": "1000.00",
   "loss_payee_id": "<optional_loss_payee_uuid>"
+}
+```
+
+### Driver Payload Example
+
+```json
+{
+  "client_id": "<client_uuid>",
+  "first_name": "Jane",
+  "last_name": "Doe",
+  "date_of_birth": "1990-03-15",
+  "license_number": "TX1234567",
+  "license_state": "TX",
+  "license_class_id": "<lookup_license_class_uuid>"
 }
 ```
 
@@ -306,8 +325,18 @@ Base path: `/api/v1/assets/`
 }
 ```
 
-Assignments enforce uniqueness per policy/vehicle pair and return a validation error if the relationship already exists. Soft-deleted records remain hidden unless `?include_inactive=true` is supplied on list endpoints.
+```json
+{
+  "policy_id": "<policy_uuid>",
+  "driver_id": "<driver_uuid>",
+  "status": "active"
+}
+```
+
+Assignments enforce uniqueness per policy/vehicle or policy/driver pair and return a validation error if the relationship already exists. Soft-deleted records remain hidden unless `?include_inactive=true` is supplied on list endpoints.
 
 ---
 
 As new resources (finance, documents, etc.) come online, extend this document so the frontend team always has a single reference for endpoint behaviour and payload expectations.
+
+

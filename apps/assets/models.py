@@ -132,3 +132,63 @@ class PolicyVehicle(BaseModel):
 
     def __str__(self) -> str:  # pragma: no cover
         return f"{self.policy} -> {self.vehicle}"
+
+
+class Driver(BaseModel):
+    """Client driver record used for assignments and compliance."""
+
+    client = models.ForeignKey(
+        "clients.Client",
+        related_name="drivers",
+        on_delete=models.CASCADE,
+    )
+    first_name = models.CharField(max_length=150)
+    middle_name = models.CharField(max_length=150, blank=True)
+    last_name = models.CharField(max_length=150)
+    date_of_birth = models.DateField()
+    license_number = models.CharField(max_length=64)
+    license_state = models.CharField(max_length=2)
+    license_class = models.ForeignKey(
+        "lookups.LicenseClass",
+        related_name="drivers",
+        on_delete=models.PROTECT,
+    )
+    issue_date = models.DateField(null=True, blank=True)
+    hire_date = models.DateField(null=True, blank=True)
+    violations = models.PositiveSmallIntegerField(default=0)
+    accidents = models.PositiveSmallIntegerField(default=0)
+
+    class Meta:
+        ordering = ("last_name", "first_name")
+        unique_together = ("client", "license_number")
+
+    def __str__(self) -> str:  # pragma: no cover
+        return f"{self.first_name} {self.last_name}".strip()
+
+
+class PolicyDriver(BaseModel):
+    """Assignment of drivers to policies."""
+
+    class Status(models.TextChoices):
+        ACTIVE = "active", "Active"
+        INACTIVE = "inactive", "Inactive"
+        NOT_ASSIGNED = "not_assigned", "Not Assigned"
+
+    policy = models.ForeignKey(
+        "policies.Policy",
+        related_name="policy_drivers",
+        on_delete=models.CASCADE,
+    )
+    driver = models.ForeignKey(
+        Driver,
+        related_name="policy_assignments",
+        on_delete=models.CASCADE,
+    )
+    status = models.CharField(max_length=16, choices=Status.choices, default=Status.ACTIVE)
+
+    class Meta:
+        unique_together = ("policy", "driver")
+        ordering = ("policy", "driver")
+
+    def __str__(self) -> str:  # pragma: no cover
+        return f"{self.policy} -> {self.driver}"

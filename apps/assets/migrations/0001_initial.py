@@ -179,4 +179,84 @@ class Migration(migrations.Migration):
                 "unique_together": {("policy", "vehicle")},
             },
         ),
+        migrations.CreateModel(
+            name="Driver",
+            fields=[
+                ("created_at", models.DateTimeField(default=django.utils.timezone.now, editable=False)),
+                ("updated_at", models.DateTimeField(auto_now=True)),
+                ("id", models.UUIDField(default=uuid.uuid4, editable=False, primary_key=True, serialize=False)),
+                ("is_active", models.BooleanField(default=True)),
+                ("first_name", models.CharField(max_length=150)),
+                ("middle_name", models.CharField(blank=True, max_length=150)),
+                ("last_name", models.CharField(max_length=150)),
+                ("date_of_birth", models.DateField()),
+                ("license_number", models.CharField(max_length=64)),
+                ("license_state", models.CharField(max_length=2)),
+                ("issue_date", models.DateField(blank=True, null=True)),
+                ("hire_date", models.DateField(blank=True, null=True)),
+                ("violations", models.PositiveSmallIntegerField(default=0)),
+                ("accidents", models.PositiveSmallIntegerField(default=0)),
+                (
+                    "client",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="drivers",
+                        to="clients.client",
+                    ),
+                ),
+                (
+                    "license_class",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.PROTECT,
+                        related_name="drivers",
+                        to="lookups.licenseclass",
+                    ),
+                ),
+            ],
+            options={
+                "ordering": ("last_name", "first_name"),
+                "unique_together": {("client", "license_number")},
+            },
+        ),
+        migrations.CreateModel(
+            name="PolicyDriver",
+            fields=[
+                ("created_at", models.DateTimeField(default=django.utils.timezone.now, editable=False)),
+                ("updated_at", models.DateTimeField(auto_now=True)),
+                ("id", models.UUIDField(default=uuid.uuid4, editable=False, primary_key=True, serialize=False)),
+                ("is_active", models.BooleanField(default=True)),
+                (
+                    "status",
+                    models.CharField(
+                        choices=[
+                            ("active", "Active"),
+                            ("inactive", "Inactive"),
+                            ("not_assigned", "Not Assigned"),
+                        ],
+                        default="active",
+                        max_length=16,
+                    ),
+                ),
+                (
+                    "driver",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="policy_assignments",
+                        to="assets.driver",
+                    ),
+                ),
+                (
+                    "policy",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="policy_drivers",
+                        to="policies.policy",
+                    ),
+                ),
+            ],
+            options={
+                "ordering": ("policy", "driver"),
+                "unique_together": {("policy", "driver")},
+            },
+        ),
     ]
