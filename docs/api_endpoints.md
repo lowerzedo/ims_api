@@ -247,6 +247,67 @@ The following helper resources live under the same base path and power dropdowns
 
 All provider endpoints support `?include_inactive=true` to display soft-deleted rows, as well as `search` and `ordering` parameters where applicable.
 
+## Assets API
+
+Base path: `/api/v1/assets/`
+
+| Endpoint | Method(s) | Description |
+|----------|-----------|-------------|
+| `/api/v1/assets/loss-payees/` | `GET`, `POST` | List loss payees or create a new one (address payload required). |
+| `/api/v1/assets/loss-payees/{id}/` | `GET`, `PATCH`, `PUT`, `DELETE` | Retrieve, update, or soft-delete a loss payee. Address fields can be edited inline. |
+| `/api/v1/assets/vehicles/` | `GET`, `POST` | Browse vehicles or create one. Creation requires `client_id`, `vehicle_type_id`, and VIN. |
+| `/api/v1/assets/vehicles/{id}/` | `GET`, `PATCH`, `PUT`, `DELETE` | Manage a specific vehicle or mark it inactive (soft delete). |
+| `/api/v1/assets/policy-vehicles/` | `GET`, `POST` | List policy assignments or attach a vehicle to a policy along with garaging address. |
+| `/api/v1/assets/policy-vehicles/{id}/` | `GET`, `PATCH`, `PUT`, `DELETE` | Update assignment status/dates or soft-delete the linkage. |
+
+### Vehicle Payload Example
+
+```json
+{
+  "client_id": "<client_uuid>",
+  "vin": "1XPWD40X1ED215307",
+  "unit_number": "UNIT-001",
+  "vehicle_type_id": "<lookup_vehicle_type_uuid>",
+  "year": 2024,
+  "make": "Peterbilt",
+  "model": "579",
+  "gvw": 80000,
+  "pd_amount": "120000.00",
+  "deductible": "1000.00",
+  "loss_payee_id": "<optional_loss_payee_uuid>"
+}
+```
+
+### Loss Payee Payload Example
+
+```json
+{
+  "name": "Bank of Example",
+  "email": "loss@example.com",
+  "preference": "EMAIL",
+  "address": {
+    "street_address": "100 Main St",
+    "city": "Austin",
+    "state": "TX",
+    "zip_code": "78701"
+  }
+}
+```
+
+### Policy Assignment Payload Example
+
+```json
+{
+  "policy_id": "<policy_uuid>",
+  "vehicle_id": "<vehicle_uuid>",
+  "garaging_address_id": "<address_uuid>",
+  "status": "active",
+  "inception_date": "2024-02-01"
+}
+```
+
+Assignments enforce uniqueness per policy/vehicle pair and return a validation error if the relationship already exists. Soft-deleted records remain hidden unless `?include_inactive=true` is supplied on list endpoints.
+
 ---
 
-As new resources (assets, finance, documents, etc.) come online, extend this document so the frontend team always has a single reference for endpoint behaviour and payload expectations.
+As new resources (finance, documents, etc.) come online, extend this document so the frontend team always has a single reference for endpoint behaviour and payload expectations.
