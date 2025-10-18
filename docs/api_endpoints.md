@@ -350,6 +350,7 @@ Base path: `/api/v1/endorsements/`
 | `/api/v1/endorsements/endorsements/{id}/complete/` | `POST` | Mark the endorsement as completed and timestamp it. |
 | `/api/v1/endorsements/endorsements/{id}/cancel/` | `POST` | Cancel the endorsement; an optional `reason` string is appended to notes. |
 | `/api/v1/endorsements/endorsement-changes/` | `GET`, `POST` | List or log granular changes (vehicles, drivers, premium, etc.) tied to an endorsement. |
+| `/api/v1/endorsements/endorsement-documents/` | `GET`, `POST` | List or upload supporting documents for an endorsement stage (multipart form-data). |
 
 Change payload example:
 
@@ -366,6 +367,19 @@ Change payload example:
 ```
 
 Each endorsement response includes a `change_types` list and nested `changes` array so the UI can populate the endorsement tab without extra round-trips. Soft-deleted endorsements remain discoverable with `?include_inactive=true`.
+
+```http
+POST /api/v1/endorsements/endorsement-documents/
+Content-Type: multipart/form-data
+
+endorsement_id=<endorsement_uuid>
+stage=final
+document_type_id=<lookup_document_type_uuid>
+description=Signed lease termination
+file=@note.txt
+```
+
+Uploaded files land under `endorsements/<client>/<policy>/<endorsement>/`, keeping local storage or S3 buckets partitioned per client. Set `DJANGO_DEFAULT_FILE_STORAGE=storages.backends.s3boto3.S3Boto3Storage` (plus the usual `AWS_*` vars) to have Django send these to S3; omit it to keep using local media storage.
 
 ---
 
