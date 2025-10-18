@@ -17,61 +17,79 @@ from .models import (
 )
 
 
-class LookupSerializer(serializers.ModelSerializer):
+class LookupSerializer(serializers.Serializer):
     """Base serializer exposing the common lookup fields."""
 
+    id = serializers.IntegerField(read_only=True)
+    name = serializers.CharField(read_only=True)
+    is_active = serializers.BooleanField(read_only=True)
+
+
+class PolicyStatusSerializer(serializers.ModelSerializer):
     class Meta:
+        model = PolicyStatus
+        fields = ("id", "name", "is_active", "description")
+        read_only_fields = fields
+
+
+class BusinessTypeSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = BusinessType
         fields = ("id", "name", "is_active")
         read_only_fields = fields
 
 
-class PolicyStatusSerializer(LookupSerializer):
-    class Meta(LookupSerializer.Meta):
-        model = PolicyStatus
-        fields = LookupSerializer.Meta.fields + ("description",)
+class InsuranceTypeSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = InsuranceType
+        fields = ("id", "name", "is_active")
         read_only_fields = fields
 
 
-class BusinessTypeSerializer(LookupSerializer):
-    class Meta(LookupSerializer.Meta):
-        model = BusinessType
-
-
-class InsuranceTypeSerializer(LookupSerializer):
-    class Meta(LookupSerializer.Meta):
-        model = InsuranceType
-
-
-class PolicyTypeSerializer(LookupSerializer):
-    class Meta(LookupSerializer.Meta):
+class PolicyTypeSerializer(serializers.ModelSerializer):
+    class Meta:
         model = PolicyType
+        fields = ("id", "name", "is_active")
+        read_only_fields = fields
 
 
-class FinanceCompanySerializer(LookupSerializer):
-    class Meta(LookupSerializer.Meta):
+class FinanceCompanySerializer(serializers.ModelSerializer):
+    class Meta:
         model = FinanceCompany
+        fields = ("id", "name", "is_active")
+        read_only_fields = fields
 
 
-class ContactTypeSerializer(LookupSerializer):
-    class Meta(LookupSerializer.Meta):
+class ContactTypeSerializer(serializers.ModelSerializer):
+    class Meta:
         model = ContactType
+        fields = ("id", "name", "is_active")
+        read_only_fields = fields
 
 
-class AddressTypeSerializer(LookupSerializer):
-    class Meta(LookupSerializer.Meta):
+class AddressTypeSerializer(serializers.ModelSerializer):
+    class Meta:
         model = AddressType
+        fields = ("id", "name", "is_active")
+        read_only_fields = fields
 
 
-class VehicleTypeSerializer(LookupSerializer):
-    class Meta(LookupSerializer.Meta):
+class VehicleTypeSerializer(serializers.ModelSerializer):
+    class Meta:
         model = VehicleType
+        fields = ("id", "name", "is_active")
+        read_only_fields = fields
 
 
-class LicenseClassSerializer(LookupSerializer):
-    class Meta(LookupSerializer.Meta):
+class LicenseClassSerializer(serializers.ModelSerializer):
+    class Meta:
         model = LicenseClass
+        fields = ("id", "name", "is_active")
+        read_only_fields = fields
 
 
-class DocumentTypeSerializer(LookupSerializer):
-    class Meta(LookupSerializer.Meta):
+class DocumentTypeSerializer(serializers.ModelSerializer):
+    class Meta:
         model = DocumentType
+        fields = ("id", "name", "is_active")
+        read_only_fields = fields

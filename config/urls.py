@@ -21,6 +21,7 @@ urlpatterns = [
     path(settings.ADMIN_URL, admin.site.urls),
     path("api/health/", health_check, name="health-check"),
     path("api/v1/lookups/", include("apps.lookups.urls", namespace="lookups")),
+    path("api/v1/policies/", include("apps.policies.urls", namespace="policies")),
     path("api/v1/", include("apps.clients.urls", namespace="clients")),
     path("api/auth/token/", TokenObtainPairView.as_view(), name="token_obtain_pair"),
     path("api/auth/token/refresh/", TokenRefreshView.as_view(), name="token_refresh"),

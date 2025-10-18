@@ -176,4 +176,77 @@ If a nested collection is omitted in a PATCH request, it remains untouched. Send
 
 ---
 
-As new resources (policies, assets, etc.) come online, extend this document so the frontend team always has a single reference for endpoint behaviour and payload expectations.
+## Policies API
+
+Base path: `/api/v1/policies/`
+
+| Endpoint | Method(s) | Description |
+|----------|-----------|-------------|
+| `/api/v1/policies/policies/` | `GET`, `POST` | List policies or create a new policy with nested financials and coverage lines. |
+| `/api/v1/policies/policies/{id}/` | `GET`, `PATCH`, `PUT`, `DELETE` | Retrieve, update, or soft-delete a policy. Partial updates accept only changed fields while `PUT` replaces the record. |
+
+### Policy Payload Structure
+
+```json
+{
+  "client_id": "<client_uuid>",
+  "policy_number": "POL-123",
+  "status_id": "<lookup_policy_status_uuid>",
+  "business_type_id": "<lookup_business_type_uuid>",
+  "insurance_type_id": "<lookup_insurance_type_uuid>",
+  "policy_type_id": "<lookup_policy_type_uuid>",
+  "effective_date": "2024-01-01",
+  "maturity_date": "2025-01-01",
+  "carrier_product_id": "<carrier_product_uuid>",
+  "finance_company_id": "<lookup_finance_company_uuid>",
+  "producer_id": "<user_uuid>",
+  "account_manager_id": "<user_uuid>",
+  "account_manager_rate": "9.50",
+  "referral_company_id": "<referral_company_uuid>",
+  "financials": {
+    "original_pure_premium": "10000.00",
+    "latest_pure_premium": "10500.00",
+    "broker_fee": "250.00",
+    "taxes": "120.00",
+    "agency_fee": "300.00",
+    "total_premium": "11000.00",
+    "down_payment": "2000.00",
+    "acct_manager_commission_amt": "250.00",
+    "referral_commission_amt": "125.00"
+  },
+  "coverages": [
+    { "coverage_type": "Auto Liability", "limits": "$1,000,000", "deductible": "5000.00" }
+  ]
+}
+```
+
+Coverages accept existing IDs when updating:
+
+```json
+{
+  "coverages": [
+    { "id": "<coverage_uuid>", "limits": "$1,500,000", "deductible": "2500.00" }
+  ]
+}
+```
+
+`DELETE /api/v1/policies/policies/{id}/` sets `is_active=false` on the policy and its nested coverages and financial record. Include `?include_inactive=true` to browse archived policies.
+
+### Provider Catalog Endpoints
+
+The following helper resources live under the same base path and power dropdowns in the UI. All require authentication and support soft-deletes via `DELETE`.
+
+| Resource | Endpoint | Method(s) | Notes |
+|----------|----------|-----------|-------|
+| General Agents | `/api/v1/policies/general-agents/` | `GET`, `POST` | List or create general agencies with commission defaults. |
+| General Agent | `/api/v1/policies/general-agents/{id}/` | `GET`, `PATCH`, `PUT`, `DELETE` | Retrieve/update a single agency or deactivate it. |
+| Carrier Products | `/api/v1/policies/carrier-products/` | `GET`, `POST` | List or create carrier offerings linked to a general agent. |
+| Carrier Product | `/api/v1/policies/carrier-products/{id}/` | `GET`, `PATCH`, `PUT`, `DELETE` | Update product details or mark them inactive. |
+| Referral Companies | `/api/v1/policies/referral-companies/` | `GET`, `POST` | Manage the referral partner catalog. |
+| Referral Company | `/api/v1/policies/referral-companies/{id}/` | `GET`, `PATCH`, `PUT`, `DELETE` | Retrieve/update referral data or perform a soft-delete. |
+
+All provider endpoints support `?include_inactive=true` to display soft-deleted rows, as well as `search` and `ordering` parameters where applicable.
+
+---
+
+As new resources (assets, finance, documents, etc.) come online, extend this document so the frontend team always has a single reference for endpoint behaviour and payload expectations.
