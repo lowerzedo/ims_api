@@ -23,6 +23,7 @@ urlpatterns = [
     path("api/v1/lookups/", include("apps.lookups.urls", namespace="lookups")),
     path("api/v1/policies/", include("apps.policies.urls", namespace="policies")),
     path("api/v1/assets/", include("apps.assets.urls", namespace="assets")),
+    path("api/v1/endorsements/", include("apps.endorsements.urls", namespace="endorsements")),
     path("api/v1/", include("apps.clients.urls", namespace="clients")),
     path("api/auth/token/", TokenObtainPairView.as_view(), name="token_obtain_pair"),
     path("api/auth/token/refresh/", TokenRefreshView.as_view(), name="token_refresh"),

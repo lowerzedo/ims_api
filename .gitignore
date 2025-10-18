@@ -47,3 +47,7 @@ coverage.xml
 
 # macOS
 .DS_Store
+
+# uv related
+.uv_cache
+.uv-cache

@@ -325,6 +325,8 @@ Base path: `/api/v1/assets/`
 }
 ```
 
+### Driver Assignment Payload Example
+
 ```json
 {
   "policy_id": "<policy_uuid>",
@@ -335,8 +337,36 @@ Base path: `/api/v1/assets/`
 
 Assignments enforce uniqueness per policy/vehicle or policy/driver pair and return a validation error if the relationship already exists. Soft-deleted records remain hidden unless `?include_inactive=true` is supplied on list endpoints.
 
+## Endorsements API
+
+Base path: `/api/v1/endorsements/`
+
+| Endpoint | Method(s) | Description |
+|----------|-----------|-------------|
+| `/api/v1/endorsements/endorsements/` | `GET`, `POST` | List or create endorsements for policies. `POST` defaults to a draft in the Client stage. |
+| `/api/v1/endorsements/endorsements/{id}/` | `GET`, `PATCH`, `DELETE` | Retrieve, update, or soft-delete an endorsement. Partial updates accept stage changes, premium deltas, and notes. |
+| `/api/v1/endorsements/endorsements/{id}/start/` | `POST` | Move a draft endorsement into progress; optional `stage` lets you jump straight to a tab. |
+| `/api/v1/endorsements/endorsements/{id}/advance/` | `POST` | Change the current stage while keeping the endorsement in progress. |
+| `/api/v1/endorsements/endorsements/{id}/complete/` | `POST` | Mark the endorsement as completed and timestamp it. |
+| `/api/v1/endorsements/endorsements/{id}/cancel/` | `POST` | Cancel the endorsement; an optional `reason` string is appended to notes. |
+| `/api/v1/endorsements/endorsement-changes/` | `GET`, `POST` | List or log granular changes (vehicles, drivers, premium, etc.) tied to an endorsement. |
+
+Change payload example:
+
+```json
+{
+  "endorsement_id": "<endorsement_uuid>",
+  "stage": "vehicles",
+  "change_type": "vehicles",
+  "summary": "Added 2023 Freightliner",
+  "details": {
+    "vin": "3AKJHHDR7LSMS2855"
+  }
+}
+```
+
+Each endorsement response includes a `change_types` list and nested `changes` array so the UI can populate the endorsement tab without extra round-trips. Soft-deleted endorsements remain discoverable with `?include_inactive=true`.
+
 ---
 
 As new resources (finance, documents, etc.) come online, extend this document so the frontend team always has a single reference for endpoint behaviour and payload expectations.
-
-
