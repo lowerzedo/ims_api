@@ -77,3 +77,4 @@ README.md
 - [`Requirements V4.txt`](../Requirements%20V4.txt) — searchable requirements
 - [`db.md`](../db.md) — canonical ERD / schema blueprint
 - [`backend_development_plan.md`](../backend_development_plan.md) — milestone roadmap
+- [`docs/api_endpoints.md`](docs/api_endpoints.md) — endpoint reference for frontend integration
