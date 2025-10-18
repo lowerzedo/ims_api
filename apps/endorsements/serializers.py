@@ -10,8 +10,10 @@ from rest_framework import serializers
 
 from apps.accounts.models import User
 from apps.policies.models import Policy
+from apps.lookups.models import DocumentType
+from apps.lookups.serializers import LookupSerializer
 
-from .models import Endorsement, EndorsementChange
+from .models import Endorsement, EndorsementChange, EndorsementDocument
 
 
 class UserSummarySerializer(serializers.ModelSerializer):
@@ -58,6 +60,51 @@ class EndorsementChangeSerializer(serializers.ModelSerializer):
         read_only_fields = ("id", "endorsement", "created_by", "created_at", "updated_at", "is_active")
 
 
+class EndorsementDocumentSerializer(serializers.ModelSerializer):
+    endorsement = serializers.UUIDField(source="endorsement.id", read_only=True)
+    endorsement_id = serializers.PrimaryKeyRelatedField(
+        queryset=Endorsement.objects.filter(is_active=True),
+        source="endorsement",
+        write_only=True,
+    )
+    document_type = LookupSerializer(read_only=True)
+    document_type_id = serializers.PrimaryKeyRelatedField(
+        queryset=DocumentType.objects.filter(is_active=True),
+        source="document_type",
+        write_only=True,
+        allow_null=True,
+        required=False,
+    )
+    uploaded_by = UserSummarySerializer(read_only=True)
+    file = serializers.FileField(use_url=True)
+
+    class Meta:
+        model = EndorsementDocument
+        fields = (
+            "id",
+            "endorsement",
+            "endorsement_id",
+            "stage",
+            "document_type",
+            "document_type_id",
+            "file",
+            "description",
+            "uploaded_by",
+            "created_at",
+            "updated_at",
+            "is_active",
+        )
+        read_only_fields = (
+            "id",
+            "endorsement",
+            "document_type",
+            "uploaded_by",
+            "created_at",
+            "updated_at",
+            "is_active",
+        )
+
+
 class EndorsementSerializer(serializers.ModelSerializer):
     policy = serializers.UUIDField(source="policy.id", read_only=True)
     policy_id = serializers.PrimaryKeyRelatedField(
@@ -84,6 +131,7 @@ class EndorsementSerializer(serializers.ModelSerializer):
     )
     change_types = serializers.SerializerMethodField()
     changes = EndorsementChangeSerializer(many=True, read_only=True)
+    documents = EndorsementDocumentSerializer(many=True, read_only=True)
 
     class Meta:
         model = Endorsement
@@ -108,6 +156,7 @@ class EndorsementSerializer(serializers.ModelSerializer):
             "updated_by_id",
             "change_types",
             "changes",
+            "documents",
             "created_at",
             "updated_at",
             "is_active",
@@ -121,6 +170,7 @@ class EndorsementSerializer(serializers.ModelSerializer):
             "updated_by",
             "change_types",
             "changes",
+            "documents",
             "created_at",
             "updated_at",
             "is_active",

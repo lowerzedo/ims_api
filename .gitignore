@@ -49,5 +49,5 @@ coverage.xml
 .DS_Store
 
 # uv related
-.uv_cache
-.uv-cache
+.uv_cache/
+.uv-cache/

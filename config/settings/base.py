@@ -116,6 +116,24 @@ STATICFILES_DIRS = [BASE_DIR / "static"]
 MEDIA_URL = "media/"
 MEDIA_ROOT = BASE_DIR / "media"
 
+# Allow overriding default storage (e.g. S3 via django-storages) without code changes.
+DEFAULT_FILE_STORAGE = env.str(
+    "DJANGO_DEFAULT_FILE_STORAGE",
+    default="django.core.files.storage.FileSystemStorage",
+)
+
+STORAGES = {
+    "default": {
+        "BACKEND": DEFAULT_FILE_STORAGE,
+    },
+    "staticfiles": {
+        "BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage",
+    },
+}
+
+if DEFAULT_FILE_STORAGE.endswith("FileSystemStorage"):
+    STORAGES["default"].setdefault("OPTIONS", {"location": str(MEDIA_ROOT)})
+
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 AUTH_USER_MODEL = "accounts.User"

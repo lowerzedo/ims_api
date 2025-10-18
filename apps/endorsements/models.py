@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from decimal import Decimal
+from pathlib import PurePosixPath
 
 from django.conf import settings
 from django.db import models
@@ -162,3 +163,56 @@ class EndorsementChange(BaseModel):
 
     def __str__(self) -> str:  # pragma: no cover - trivial repr
         return f"{self.get_change_type_display()} change for {self.endorsement}"
+
+
+def endorsement_document_upload_to(instance: "EndorsementDocument", filename: str) -> str:
+    """Organize uploads by client/policy/endorsement for S3 or local storage."""
+
+    endorsement = instance.endorsement
+    policy = endorsement.policy
+    client_id = getattr(policy.client, "id", "unknown-client")
+    safe_path = PurePosixPath(
+        "endorsements",
+        str(client_id),
+        str(policy.id),
+        str(endorsement.id),
+        filename,
+    )
+    return str(safe_path)
+
+
+class EndorsementDocument(BaseModel):
+    """File attachment uploaded during an endorsement stage."""
+
+    endorsement = models.ForeignKey(
+        Endorsement,
+        related_name="documents",
+        on_delete=models.CASCADE,
+    )
+    stage = models.CharField(
+        max_length=32,
+        choices=Endorsement.Stage.choices,
+        default=Endorsement.Stage.CLIENT,
+    )
+    document_type = models.ForeignKey(
+        "lookups.DocumentType",
+        related_name="endorsement_documents",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+    )
+    file = models.FileField(upload_to=endorsement_document_upload_to, max_length=512)
+    description = models.CharField(max_length=255, blank=True)
+    uploaded_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        related_name="endorsement_documents",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+    )
+
+    class Meta:
+        ordering = ("-created_at",)
+
+    def __str__(self) -> str:  # pragma: no cover - trivial repr
+        return f"Document for {self.endorsement}"

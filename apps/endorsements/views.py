@@ -3,12 +3,17 @@ from __future__ import annotations
 
 from rest_framework import serializers
 from rest_framework.decorators import action
+from rest_framework.parsers import FormParser, MultiPartParser
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.viewsets import ModelViewSet
 
-from .models import Endorsement, EndorsementChange
-from .serializers import EndorsementChangeSerializer, EndorsementSerializer
+from .models import Endorsement, EndorsementChange, EndorsementDocument
+from .serializers import (
+    EndorsementChangeSerializer,
+    EndorsementDocumentSerializer,
+    EndorsementSerializer,
+)
 
 
 class BaseSoftDeleteViewSet(ModelViewSet):
@@ -33,7 +38,7 @@ class EndorsementViewSet(BaseSoftDeleteViewSet):
         "policy__client",
         "created_by",
         "updated_by",
-    ).prefetch_related("changes")
+    ).prefetch_related("changes", "documents", "documents__document_type")
     filterset_fields = {
         "policy": ["exact"],
         "status": ["exact"],
@@ -116,4 +121,29 @@ class EndorsementChangeViewSet(BaseSoftDeleteViewSet):
         serializer.save(created_by=user)
 
     def perform_update(self, serializer: EndorsementChangeSerializer) -> None:
+        serializer.save()
+
+
+class EndorsementDocumentViewSet(BaseSoftDeleteViewSet):
+    serializer_class = EndorsementDocumentSerializer
+    queryset = EndorsementDocument.objects.select_related(
+        "endorsement",
+        "endorsement__policy",
+        "document_type",
+        "uploaded_by",
+    )
+    parser_classes = (MultiPartParser, FormParser)
+    filterset_fields = {
+        "endorsement": ["exact"],
+        "stage": ["exact"],
+        "document_type": ["exact"],
+    }
+    ordering_fields = ("created_at", "updated_at")
+    ordering = ("-created_at",)
+
+    def perform_create(self, serializer: EndorsementDocumentSerializer) -> None:
+        user = self.request.user if self.request.user.is_authenticated else None
+        serializer.save(uploaded_by=user)
+
+    def perform_update(self, serializer: EndorsementDocumentSerializer) -> None:
         serializer.save()

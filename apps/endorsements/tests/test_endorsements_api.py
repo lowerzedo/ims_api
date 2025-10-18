@@ -1,11 +1,13 @@
 import pytest
 from django.urls import reverse
 from rest_framework.test import APIClient
+from django.core.files.uploadedfile import SimpleUploadedFile
 
 from apps.accounts.models import User
 from apps.clients.models import Client
 from apps.lookups.models import (
     BusinessType,
+    DocumentType,
     FinanceCompany,
     InsuranceType,
     PolicyStatus,
@@ -17,6 +19,12 @@ from apps.policies.models import CarrierProduct, GeneralAgent, Policy
 @pytest.fixture
 def api_client(db):
     return APIClient()
+
+
+@pytest.fixture(autouse=True)
+def media_storage(settings, tmp_path):
+    settings.MEDIA_ROOT = tmp_path / "media"
+    return settings.MEDIA_ROOT
 
 
 @pytest.fixture
@@ -77,6 +85,7 @@ def test_create_endorsement_defaults_name(api_client, user, policy):
     assert data["status"] == "draft"
     assert data["current_stage"] == "client"
     assert data["premium_change"] == "1500.00"
+    assert data["documents"] == []
 
 
 @pytest.mark.django_db
@@ -106,6 +115,7 @@ def test_record_change_and_list_includes_change_types(api_client, user, policy):
     assert list_response.status_code == 200
     result = list_response.json()["results"][0]
     assert result["change_types"] == ["Vehicles"]
+    assert result["documents"] == []
 
 
 @pytest.mark.django_db
@@ -147,3 +157,43 @@ def test_complete_endorsement_flow(api_client, user, policy):
     assert list_response.json()["count"] == 0
     list_response = api_client.get(endorsement_url, {"include_inactive": "true"})
     assert list_response.json()["count"] == 1
+
+
+@pytest.mark.django_db
+def test_upload_endorsement_document(api_client, user, policy):
+    api_client.force_authenticate(user=user)
+    endorsement_url = reverse("endorsements:endorsement-list")
+    endorsement_response = api_client.post(
+        endorsement_url,
+        {"policy_id": str(policy.id)},
+        format="json",
+    )
+    endorsement_id = endorsement_response.json()["id"]
+
+    document_type = DocumentType.objects.filter(is_active=True).first()
+    if document_type is None:
+        document_type = DocumentType.objects.create(name="Lease Termination")
+
+    upload_url = reverse("endorsements:endorsement-document-list")
+    file_data = SimpleUploadedFile("note.txt", b"endorsement file", content_type="text/plain")
+    payload = {
+        "endorsement_id": endorsement_id,
+        "stage": "final",
+        "document_type_id": str(document_type.id),
+        "description": "Signed termination",
+        "file": file_data,
+    }
+
+    response = api_client.post(upload_url, payload, format="multipart")
+    assert response.status_code == 201, response.json()
+    data = response.json()
+    assert data["document_type"]["name"] == document_type.name
+    assert data["stage"] == "final"
+    assert data["file"].endswith("note.txt")
+
+    detail_url = reverse("endorsements:endorsement-detail", args=[endorsement_id])
+    detail_response = api_client.get(detail_url)
+    assert detail_response.status_code == 200
+    docs = detail_response.json()["documents"]
+    assert len(docs) == 1
+    assert docs[0]["description"] == "Signed termination"

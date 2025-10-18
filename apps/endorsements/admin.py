@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from django.contrib import admin
 
-from .models import Endorsement, EndorsementChange
+from .models import Endorsement, EndorsementChange, EndorsementDocument
 
 
 @admin.register(Endorsement)
@@ -36,3 +36,22 @@ class EndorsementChangeAdmin(admin.ModelAdmin):
     list_filter = ("change_type", "stage")
     search_fields = ("summary", "endorsement__name", "endorsement__policy__policy_number")
     autocomplete_fields = ("endorsement", "created_by")
+
+
+@admin.register(EndorsementDocument)
+class EndorsementDocumentAdmin(admin.ModelAdmin):
+    list_display = (
+        "endorsement",
+        "stage",
+        "document_type",
+        "file",
+        "uploaded_by",
+        "created_at",
+    )
+    list_filter = ("stage", "document_type")
+    search_fields = (
+        "endorsement__name",
+        "endorsement__policy__policy_number",
+        "description",
+    )
+    autocomplete_fields = ("endorsement", "document_type", "uploaded_by")
