@@ -381,6 +381,62 @@ file=@note.txt
 
 Uploaded files land under `endorsements/<client>/<policy>/<endorsement>/`, keeping local storage or S3 buckets partitioned per client. Set `DJANGO_DEFAULT_FILE_STORAGE=storages.backends.s3boto3.S3Boto3Storage` (plus the usual `AWS_*` vars) to have Django send these to S3; omit it to keep using local media storage.
 
+## Certificates API
+
+Base path: `/api/v1/certificates/`
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/v1/certificates/holders/` | GET, POST | List certificate holders or create a new one with nested address data. |
+| `/api/v1/certificates/holders/{id}/` | GET, PATCH, DELETE | Retrieve/update holder details or soft-delete the record. |
+| `/api/v1/certificates/master-certificates/` | GET, POST | Manage reusable templates tied to policies. |
+| `/api/v1/certificates/master-certificates/{id}/` | GET, PATCH, DELETE | Update template metadata/settings or soft-delete it. |
+| `/api/v1/certificates/certificates/` | GET, POST | Issue certificates from a master template, selecting holder, vehicles, and drivers. Generates a PDF + verification code. |
+| `/api/v1/certificates/certificates/{id}/` | GET, PATCH, DELETE | Reissue the certificate document after updating selections or soft-delete the record. |
+
+### Issue Certificate Example
+
+```http
+POST /api/v1/certificates/certificates/
+Content-Type: application/json
+
+{
+  "master_certificate_id": "<uuid>",
+  "certificate_holder_id": "<uuid>",
+  "vehicle_ids": ["<vehicle_uuid>"],
+  "driver_ids": ["<driver_uuid>"]
+}
+```
+
+Successful responses include the generated verification code and document URL:
+
+```json
+{
+  "id": "...",
+  "verification_code": "9F2A1C4E7B12",
+  "document": "http://localhost:8000/media/certificates/<client>/<policy>/<certificate>/certificate-9F2A1C4E7B12.pdf",
+  "vehicles": [ { "unit_number": "UNIT-99", "make": "Peterbilt", "model": "579" } ],
+  "drivers": [ { "first_name": "Alex", "last_name": "Johnson" } ]
+}
+```
+
+Certificate holder payloads embed address details:
+
+```json
+{
+  "name": "Logistics Hub LLC",
+  "contact_person": "Sam Broker",
+  "address": {
+    "street_address": "100 Depot Rd",
+    "city": "Dallas",
+    "state": "TX",
+    "zip_code": "75201"
+  }
+}
+```
+
+Certificates currently render a concise PDF summary (policy, holder, vehicles, drivers, verification code) that is stored via the configured media backend. This keeps the flow unblocked while full ACORD rendering is designed.
+
 ---
 
 As new resources (finance, documents, etc.) come online, extend this document so the frontend team always has a single reference for endpoint behaviour and payload expectations.
