@@ -7,10 +7,10 @@ from rest_framework.routers import DefaultRouter
 from .views import ClientViewSet
 
 router = DefaultRouter()
-router.register("clients", ClientViewSet, basename="client")
+router.register("", ClientViewSet, basename="client")
 
 app_name = "clients"
 
 urlpatterns = [
-    path("", include(router.urls)),
+    path("clients/", include(router.urls)),
 ]
