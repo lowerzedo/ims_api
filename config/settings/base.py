@@ -182,7 +182,7 @@ EMAIL_BACKEND = env.str(
 DEFAULT_FROM_EMAIL = env.str("DJANGO_DEFAULT_FROM_EMAIL", default="IMS <noreply@ims.local>")
 
 # CORS_ALLOWED_ORIGINS = env.list("DJANGO_CORS_ALLOWED_ORIGINS", default=['http://localhost:5173', 'http://127.0.0.1:5173'])
-CORS_ALLOWED_ORIGINS = ['http://localhost:5173', 'http://127.0.0.1:5173']
+CORS_ALLOWED_ORIGINS = ['http://localhost:5173', 'http://127.0.0.1:5173', 'https://ims-front-eight.vercel.app']
 CORS_ALLOW_CREDENTIALS = True
 
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
