@@ -10,15 +10,18 @@ from .serializers import EmployeeSerializer
 
 class EmployeeViewSet(ReadOnlyModelViewSet):
     """
-    Read-only viewset for employees (users with commission rates).
+    Read-only viewset for employees (users who can be assigned to policies).
     
-    Returns producers and account managers who can earn commissions.
+    Returns users who can be producers and/or account managers.
+    Filter by capability using ?can_produce=true or ?can_manage_accounts=true
     """
 
     serializer_class = EmployeeSerializer
     permission_classes = (IsAuthenticated,)
     filterset_fields = {
         "role": ["exact"],
+        "can_produce": ["exact"],
+        "can_manage_accounts": ["exact"],
         "is_active": ["exact"],
     }
     search_fields = ("email", "first_name", "last_name")
@@ -26,18 +29,21 @@ class EmployeeViewSet(ReadOnlyModelViewSet):
     ordering = ("last_name", "first_name")
 
     def get_queryset(self):
-        """Return only employees who can have commissions (producers and account managers)."""
+        """Return employees who can be assigned to policies (producers or account managers)."""
+        from django.db.models import Q
+        
+        # Base: users with any capability (can_produce OR can_manage_accounts)
+        # Also include legacy role-based users for backwards compatibility
         queryset = User.objects.filter(
-            role__in=[User.Role.PRODUCER, User.Role.ACCOUNT_MANAGER],
-            is_active=True,
-        )
+            Q(can_produce=True) | 
+            Q(can_manage_accounts=True) |
+            Q(role__in=[User.Role.PRODUCER, User.Role.ACCOUNT_MANAGER])
+        ).exclude(is_superuser=True)
         
-        # Allow filtering inactive if requested
+        # Filter by active status
         include_inactive = self.request.query_params.get("include_inactive")
-        if include_inactive in {"true", "1", "yes"}:
-            queryset = User.objects.filter(
-                role__in=[User.Role.PRODUCER, User.Role.ACCOUNT_MANAGER],
-            )
+        if include_inactive not in {"true", "1", "yes"}:
+            queryset = queryset.filter(is_active=True)
         
-        return queryset
+        return queryset.distinct()
 

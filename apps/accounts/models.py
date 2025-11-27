@@ -58,17 +58,47 @@ class User(BaseModel, AbstractBaseUser, PermissionsMixin):
     first_name = models.CharField(max_length=150, blank=True)
     last_name = models.CharField(max_length=150, blank=True)
     phone_number = models.CharField(max_length=32, blank=True)
+    
+    # Legacy role field - kept for backwards compatibility
     role = models.CharField(
         max_length=32,
         choices=Role.choices,
         default=Role.ACCOUNT_MANAGER,
+        help_text="Primary role (informational). Use capability flags for actual permissions.",
     )
+    
+    # Capability flags - user can have multiple capabilities
+    can_produce = models.BooleanField(
+        default=False,
+        help_text="User can be assigned as a producer on policies.",
+    )
+    can_manage_accounts = models.BooleanField(
+        default=False,
+        help_text="User can be assigned as an account manager on policies.",
+    )
+    
+    # Default commission rates (can be overridden per-policy)
+    default_producer_rate = models.DecimalField(
+        max_digits=5,
+        decimal_places=2,
+        default=Decimal("0.00"),
+        help_text="Default producer commission rate (%). Can be overridden per policy.",
+    )
+    default_account_manager_rate = models.DecimalField(
+        max_digits=5,
+        decimal_places=2,
+        default=Decimal("0.00"),
+        help_text="Default account manager commission rate (%). Can be overridden per policy.",
+    )
+    
+    # Keep for backwards compatibility, maps to default_producer_rate
     commission_rate = models.DecimalField(
         max_digits=5,
         decimal_places=2,
         default=Decimal("0.00"),
-        help_text="Percentage paid on pure premium (e.g. 9.50 for 9.5%).",
+        help_text="Deprecated. Use default_producer_rate or default_account_manager_rate.",
     )
+    
     date_joined = models.DateTimeField(default=timezone.now)
     is_staff = models.BooleanField(default=False)
 

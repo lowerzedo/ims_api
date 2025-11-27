@@ -120,6 +120,7 @@ GET /api/v1/policies/policies/
         "last_name": "Jones",
         "role": "account_manager"
       },
+      "producer_rate": "12.00",
       "account_manager_rate": "9.50",
       "referral_company": {
         "id": "uuid",
@@ -182,6 +183,7 @@ POST /api/v1/policies/policies/
   "carrier_product_id": "uuid",
   "finance_company_id": 1,
   "producer_id": "uuid",
+  "producer_rate": "12.00",
   "account_manager_id": "uuid",
   "account_manager_rate": "9.50",
   "referral_company_id": "uuid",

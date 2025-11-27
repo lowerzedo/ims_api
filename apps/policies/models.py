@@ -138,6 +138,17 @@ class Policy(BaseModel):
         null=True,
         blank=True,
     )
+    producer_rate = models.DecimalField(
+        max_digits=5,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        validators=[
+            MinValueValidator(Decimal("0.00")),
+            MaxValueValidator(Decimal("100.00")),
+        ],
+        help_text="Percentage of pure premium paid to the producer for this policy.",
+    )
     account_manager = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         related_name="policies_managed",
@@ -154,7 +165,7 @@ class Policy(BaseModel):
             MinValueValidator(Decimal("0.00")),
             MaxValueValidator(Decimal("100.00")),
         ],
-        help_text="Percentage of pure premium paid to the account manager.",
+        help_text="Percentage of pure premium paid to the account manager for this policy.",
     )
     referral_company = models.ForeignKey(
         ReferralCompany,

@@ -262,7 +262,9 @@ Access tokens contain:
 
 # Employees API
 
-Employees are users (producers and account managers) who can earn commissions.
+Employees are users who can be assigned to policies as producers and/or account managers.
+
+**Key Concept:** A user can be BOTH a producer AND an account manager. They may have different commission rates on different policies.
 
 ## List Employees
 
@@ -270,12 +272,14 @@ Employees are users (producers and account managers) who can earn commissions.
 GET /api/v1/accounts/employees/
 ```
 
-Returns producers and account managers with their commission rates.
+Returns users who can be assigned to policies.
 
 **Query Parameters:**
 | Parameter | Type | Description |
 |-----------|------|-------------|
-| `role` | string | Filter by role: `producer`, `account_manager` |
+| `can_produce` | boolean | Filter users who can be producers |
+| `can_manage_accounts` | boolean | Filter users who can be account managers |
+| `role` | string | Filter by primary role: `producer`, `account_manager` |
 | `is_active` | boolean | Filter by active status |
 | `search` | string | Search email, first name, last name |
 | `ordering` | string | Sort: `last_name`, `first_name`, `email`, `date_joined` |
@@ -291,25 +295,33 @@ Returns producers and account managers with their commission rates.
   "results": [
     {
       "id": "uuid",
-      "email": "producer@example.com",
+      "email": "john@example.com",
       "first_name": "John",
       "last_name": "Smith",
       "full_name": "John Smith",
       "phone_number": "555-123-4567",
       "role": "producer",
+      "can_produce": true,
+      "can_manage_accounts": true,
+      "default_producer_rate": "12.50",
+      "default_account_manager_rate": "9.00",
       "commission_rate": "12.50",
       "is_active": true,
       "date_joined": "2024-01-15T10:00:00Z"
     },
     {
       "id": "uuid",
-      "email": "am@example.com",
+      "email": "sarah@example.com",
       "first_name": "Sarah",
       "last_name": "Jones",
       "full_name": "Sarah Jones",
       "phone_number": "555-987-6543",
       "role": "account_manager",
-      "commission_rate": "9.50",
+      "can_produce": false,
+      "can_manage_accounts": true,
+      "default_producer_rate": "0.00",
+      "default_account_manager_rate": "9.50",
+      "commission_rate": "0.00",
       "is_active": true,
       "date_joined": "2024-03-20T10:00:00Z"
     }
@@ -329,37 +341,58 @@ GET /api/v1/accounts/employees/{id}/
 
 ---
 
-## Employee Roles
+## Employee Capabilities
 
-| Role | Value | Description |
-|------|-------|-------------|
-| Producer | `producer` | Sales agents who originate policies |
-| Account Manager | `account_manager` | Agents who manage existing policies |
+Users have capability flags that determine what roles they can be assigned on policies:
 
-**Note:** Admin users are not included in the employees list.
+| Field | Type | Description |
+|-------|------|-------------|
+| `can_produce` | boolean | User can be assigned as a **producer** on policies |
+| `can_manage_accounts` | boolean | User can be assigned as an **account manager** on policies |
+
+**Note:** A user can have BOTH capabilities enabled.
 
 ---
 
-## Commission Rate
+## Commission Rates
 
-The `commission_rate` field represents the percentage of pure premium paid to the employee.
+### User-Level (Defaults)
 
-- Format: Decimal with 2 decimal places
-- Example: `"9.50"` = 9.5%
-- Range: 0.00 - 99.99
+Each user has default commission rates that apply when no policy-specific rate is set:
+
+| Field | Description |
+|-------|-------------|
+| `default_producer_rate` | Default rate when assigned as producer |
+| `default_account_manager_rate` | Default rate when assigned as account manager |
+
+### Policy-Level (Overrides)
+
+When assigning a user to a policy, you can override the default rates:
+
+| Policy Field | Description |
+|--------------|-------------|
+| `producer_rate` | Rate for producer on THIS policy (overrides user default) |
+| `account_manager_rate` | Rate for account manager on THIS policy (overrides user default) |
+
+**Example:** John has a default producer rate of 12%. On Policy A, he earns 15% as producer. On Policy B, he's the account manager earning 8%.
 
 ---
 
 ## Usage Examples
 
-### Get all producers
+### Get users who can be producers
 ```
-GET /api/v1/accounts/employees/?role=producer
+GET /api/v1/accounts/employees/?can_produce=true
 ```
 
-### Get all account managers
+### Get users who can be account managers
 ```
-GET /api/v1/accounts/employees/?role=account_manager
+GET /api/v1/accounts/employees/?can_manage_accounts=true
+```
+
+### Get users who can do both
+```
+GET /api/v1/accounts/employees/?can_produce=true&can_manage_accounts=true
 ```
 
 ### Search by name

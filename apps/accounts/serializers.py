@@ -24,6 +24,13 @@ class EmployeeSerializer(serializers.ModelSerializer):
             "full_name",
             "phone_number",
             "role",
+            # Capability flags
+            "can_produce",
+            "can_manage_accounts",
+            # Default commission rates
+            "default_producer_rate",
+            "default_account_manager_rate",
+            # Legacy field
             "commission_rate",
             "is_active",
             "date_joined",

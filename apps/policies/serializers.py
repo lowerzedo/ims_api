@@ -197,6 +197,7 @@ class PolicySerializer(serializers.ModelSerializer):
             "finance_company_id",
             "producer",
             "producer_id",
+            "producer_rate",
             "account_manager",
             "account_manager_id",
             "account_manager_rate",
