@@ -65,6 +65,15 @@ class ClientSummarySerializer(serializers.ModelSerializer):
         read_only_fields = fields
 
 
+class GaragingAddressSerializer(serializers.Serializer):
+    """Garaging address with policy context."""
+
+    policy_id = serializers.UUIDField()
+    policy_number = serializers.CharField()
+    status = serializers.CharField()
+    address = AddressSerializer()
+
+
 class VehicleSerializer(serializers.ModelSerializer):
     client = ClientSummarySerializer(read_only=True)
     client_id = serializers.PrimaryKeyRelatedField(
@@ -86,6 +95,7 @@ class VehicleSerializer(serializers.ModelSerializer):
         allow_null=True,
         required=False,
     )
+    garaging_addresses = serializers.SerializerMethodField()
 
     class Meta:
         model = Vehicle
@@ -105,6 +115,7 @@ class VehicleSerializer(serializers.ModelSerializer):
             "deductible",
             "loss_payee",
             "loss_payee_id",
+            "garaging_addresses",
             "is_active",
             "created_at",
             "updated_at",
@@ -114,10 +125,27 @@ class VehicleSerializer(serializers.ModelSerializer):
             "client",
             "vehicle_type",
             "loss_payee",
+            "garaging_addresses",
             "is_active",
             "created_at",
             "updated_at",
         )
+
+    def get_garaging_addresses(self, obj: Vehicle) -> list[dict]:
+        """Return garaging addresses from active policy assignments."""
+        assignments = obj.policy_assignments.filter(
+            is_active=True
+        ).select_related("policy", "garaging_address")
+        
+        return [
+            {
+                "policy_id": str(pa.policy.id),
+                "policy_number": pa.policy.policy_number,
+                "status": pa.status,
+                "address": AddressSerializer(pa.garaging_address).data,
+            }
+            for pa in assignments
+        ]
 
     def create(self, validated_data: dict[str, Any]) -> Vehicle:
         return Vehicle.objects.create(**validated_data)

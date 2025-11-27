@@ -45,6 +45,9 @@ class VehicleViewSet(BaseSoftDeleteViewSet):
         "vehicle_type",
         "loss_payee",
         "loss_payee__address",
+    ).prefetch_related(
+        "policy_assignments__policy",
+        "policy_assignments__garaging_address",
     )
     serializer_class = VehicleSerializer
     search_fields = (
