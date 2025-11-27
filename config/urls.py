@@ -25,6 +25,7 @@ urlpatterns = [
     path("api/v1/assets/", include("apps.assets.urls", namespace="assets")),
     path("api/v1/endorsements/", include("apps.endorsements.urls", namespace="endorsements")),
     path("api/v1/certificates/", include("apps.certificates.urls", namespace="certificates")),
+    path("api/v1/accounts/", include("apps.accounts.urls", namespace="accounts")),
     path("api/v1/", include("apps.clients.urls", namespace="clients")),
     path("api/auth/token/", TokenObtainPairView.as_view(), name="token_obtain_pair"),
     path("api/auth/token/refresh/", TokenRefreshView.as_view(), name="token_refresh"),
