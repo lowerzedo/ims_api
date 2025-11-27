@@ -43,6 +43,8 @@ class PolicyAdmin(admin.ModelAdmin):
         "policy_number",
         "client",
         "status",
+        "producer",
+        "account_manager",
         "effective_date",
         "maturity_date",
         "is_active",
@@ -50,12 +52,20 @@ class PolicyAdmin(admin.ModelAdmin):
     search_fields = (
         "policy_number",
         "client__company_name",
+        "producer__email",
+        "producer__first_name",
+        "producer__last_name",
+        "account_manager__email",
+        "account_manager__first_name",
+        "account_manager__last_name",
     )
     list_filter = (
         "status",
         "business_type",
         "insurance_type",
         "policy_type",
+        "producer",
+        "account_manager",
         "is_active",
     )
     autocomplete_fields = (
@@ -69,6 +79,45 @@ class PolicyAdmin(admin.ModelAdmin):
         "producer",
         "account_manager",
         "referral_company",
+    )
+    fieldsets = (
+        (None, {"fields": ("client", "policy_number", "status")}),
+        (
+            "Policy Details",
+            {
+                "fields": (
+                    "business_type",
+                    "insurance_type",
+                    "policy_type",
+                    "carrier_product",
+                    "finance_company",
+                ),
+            },
+        ),
+        (
+            "Dates",
+            {"fields": ("effective_date", "maturity_date")},
+        ),
+        (
+            "Assignments & Commissions",
+            {
+                "fields": (
+                    "producer",
+                    "producer_rate",
+                    "account_manager",
+                    "account_manager_rate",
+                    "referral_company",
+                ),
+                "description": "Assign producer/account manager and set their commission rates for this policy.",
+            },
+        ),
+        (
+            "Audit",
+            {
+                "fields": ("created_by", "updated_by", "is_active"),
+                "classes": ("collapse",),
+            },
+        ),
     )
 
 
