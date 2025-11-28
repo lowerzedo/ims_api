@@ -103,6 +103,7 @@ class VehicleSerializer(serializers.ModelSerializer):
         allow_null=True,
         required=False,
     )
+    new_garaging_address = AddressSerializer(write_only=True, required=False)
     garaging_addresses = serializers.SerializerMethodField()
 
     class Meta:
@@ -125,6 +126,7 @@ class VehicleSerializer(serializers.ModelSerializer):
             "loss_payee_id",
             "garaging_address",
             "garaging_address_id",
+            "new_garaging_address",
             "garaging_addresses",
             "is_active",
             "created_at",
@@ -159,12 +161,29 @@ class VehicleSerializer(serializers.ModelSerializer):
         ]
 
     def create(self, validated_data: dict[str, Any]) -> Vehicle:
-        return Vehicle.objects.create(**validated_data)
+        new_garaging_address_data = validated_data.pop("new_garaging_address", None)
+        
+        with transaction.atomic():
+            # If new_garaging_address is provided and garaging_address is not set, create the address
+            if new_garaging_address_data and not validated_data.get("garaging_address"):
+                address = Address.objects.create(**new_garaging_address_data)
+                validated_data["garaging_address"] = address
+            
+            return Vehicle.objects.create(**validated_data)
 
     def update(self, instance: Vehicle, validated_data: dict[str, Any]) -> Vehicle:
-        for attr, value in validated_data.items():
-            setattr(instance, attr, value)
-        instance.save()
+        new_garaging_address_data = validated_data.pop("new_garaging_address", None)
+        
+        with transaction.atomic():
+            # If new_garaging_address is provided, create the address and use it
+            if new_garaging_address_data:
+                address = Address.objects.create(**new_garaging_address_data)
+                validated_data["garaging_address"] = address
+            
+            for attr, value in validated_data.items():
+                setattr(instance, attr, value)
+            instance.save()
+        
         return instance
 
 

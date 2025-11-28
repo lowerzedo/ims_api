@@ -176,6 +176,45 @@ If a nested collection is omitted in a PATCH request, it remains untouched. Send
 
 ---
 
+## Address API
+
+Base path: `/api/v1/addresses/`
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/v1/addresses/` | GET | List all addresses. Supports search and ordering. |
+| `/api/v1/addresses/` | POST | Create a standalone address (e.g., for garaging). |
+| `/api/v1/addresses/{id}/` | GET | Retrieve a single address. |
+| `/api/v1/addresses/{id}/` | PATCH | Partially update an address. |
+| `/api/v1/addresses/{id}/` | PUT | Replace an address. |
+| `/api/v1/addresses/{id}/` | DELETE | Soft-delete the address. |
+
+### Address Payload Structure
+
+```json
+{
+  "street_address": "123 Main St",
+  "city": "Dallas",
+  "state": "TX",
+  "zip_code": "75201"
+}
+```
+
+### Searching & Ordering
+
+- **Search** (`?search=<term>`): case-insensitive against street_address, city, state, zip_code.
+- **Ordering** (`?ordering=street_address` or `?ordering=-created_at`). Defaults to street_address ascending.
+- **Inactive records**: Include `?include_inactive=true` to see soft-deleted addresses.
+
+Addresses are used for:
+- Client addresses (via nested payload in Client API)
+- Vehicle garaging addresses (via `garaging_address_id` on Vehicle)
+- Policy vehicle garaging addresses (via `garaging_address_id` on PolicyVehicle)
+- Loss payee addresses (nested in Loss Payee payload)
+- Certificate holder addresses (nested in Certificate Holder payload)
+
+---
+
 ## Policies API
 
 Base path: `/api/v1/policies/`
@@ -279,9 +318,14 @@ Base path: `/api/v1/assets/`
   "gvw": 80000,
   "pd_amount": "120000.00",
   "deductible": "1000.00",
-  "loss_payee_id": "<optional_loss_payee_uuid>"
+  "loss_payee_id": "<optional_loss_payee_uuid>",
+  "garaging_address_id": "<optional_address_uuid>"
 }
 ```
+
+The `garaging_address_id` field allows attaching a default garaging address directly to the vehicle. This is separate from policy-level garaging addresses assigned via `PolicyVehicle`. The response includes both:
+- `garaging_address`: The address attached directly to the vehicle
+- `garaging_addresses`: Array of addresses from policy assignments
 
 ### Driver Payload Example
 
