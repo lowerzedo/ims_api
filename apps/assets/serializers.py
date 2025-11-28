@@ -95,6 +95,14 @@ class VehicleSerializer(serializers.ModelSerializer):
         allow_null=True,
         required=False,
     )
+    garaging_address = AddressSerializer(read_only=True)
+    garaging_address_id = serializers.PrimaryKeyRelatedField(
+        queryset=Address.objects.filter(is_active=True),
+        source="garaging_address",
+        write_only=True,
+        allow_null=True,
+        required=False,
+    )
     garaging_addresses = serializers.SerializerMethodField()
 
     class Meta:
@@ -115,6 +123,8 @@ class VehicleSerializer(serializers.ModelSerializer):
             "deductible",
             "loss_payee",
             "loss_payee_id",
+            "garaging_address",
+            "garaging_address_id",
             "garaging_addresses",
             "is_active",
             "created_at",
@@ -125,6 +135,7 @@ class VehicleSerializer(serializers.ModelSerializer):
             "client",
             "vehicle_type",
             "loss_payee",
+            "garaging_address",
             "garaging_addresses",
             "is_active",
             "created_at",

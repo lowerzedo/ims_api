@@ -91,6 +91,14 @@ class Vehicle(BaseModel):
         null=True,
         blank=True,
     )
+    garaging_address = models.ForeignKey(
+        "clients.Address",
+        related_name="vehicles",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        help_text="Default garaging address for this vehicle.",
+    )
 
     class Meta:
         ordering = ("unit_number", "vin")
