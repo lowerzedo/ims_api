@@ -193,18 +193,21 @@ class PolicyVehicleSerializer(serializers.ModelSerializer):
         queryset=Policy.objects.filter(is_active=True),
         source="policy",
         write_only=True,
+        required=False,  # Not required on update
     )
     vehicle = VehicleSerializer(read_only=True)
     vehicle_id = serializers.PrimaryKeyRelatedField(
         queryset=Vehicle.objects.filter(is_active=True),
         source="vehicle",
         write_only=True,
+        required=False,  # Not required on update
     )
     garaging_address = AddressSerializer(read_only=True)
     garaging_address_id = serializers.PrimaryKeyRelatedField(
         queryset=Address.objects.filter(is_active=True),
         source="garaging_address",
         write_only=True,
+        required=False,  # Not required on update
     )
 
     class Meta:
@@ -227,7 +230,6 @@ class PolicyVehicleSerializer(serializers.ModelSerializer):
         read_only_fields = (
             "id",
             "policy",
-            "policy_id",
             "vehicle",
             "garaging_address",
             "is_active",
@@ -235,10 +237,25 @@ class PolicyVehicleSerializer(serializers.ModelSerializer):
             "updated_at",
         )
 
+    def validate(self, attrs: dict[str, Any]) -> dict[str, Any]:
+        # On create, policy_id, vehicle_id, and garaging_address_id are required
+        if self.instance is None:
+            if not attrs.get("policy"):
+                raise serializers.ValidationError({"policy_id": "This field is required."})
+            if not attrs.get("vehicle"):
+                raise serializers.ValidationError({"vehicle_id": "This field is required."})
+            if not attrs.get("garaging_address"):
+                raise serializers.ValidationError({"garaging_address_id": "This field is required."})
+        return attrs
+
     def create(self, validated_data: dict[str, Any]) -> PolicyVehicle:
         return PolicyVehicle.objects.create(**validated_data)
 
     def update(self, instance: PolicyVehicle, validated_data: dict[str, Any]) -> PolicyVehicle:
+        # Don't allow changing policy or vehicle after creation
+        validated_data.pop("policy", None)
+        validated_data.pop("vehicle", None)
+        
         for attr, value in validated_data.items():
             setattr(instance, attr, value)
         instance.save()
@@ -306,12 +323,14 @@ class PolicyDriverSerializer(serializers.ModelSerializer):
         queryset=Policy.objects.filter(is_active=True),
         source="policy",
         write_only=True,
+        required=False,  # Not required on update
     )
     driver = DriverSerializer(read_only=True)
     driver_id = serializers.PrimaryKeyRelatedField(
         queryset=Driver.objects.filter(is_active=True),
         source="driver",
         write_only=True,
+        required=False,  # Not required on update
     )
 
     class Meta:
@@ -336,10 +355,23 @@ class PolicyDriverSerializer(serializers.ModelSerializer):
             "updated_at",
         )
 
+    def validate(self, attrs: dict[str, Any]) -> dict[str, Any]:
+        # On create, policy_id and driver_id are required
+        if self.instance is None:
+            if not attrs.get("policy"):
+                raise serializers.ValidationError({"policy_id": "This field is required."})
+            if not attrs.get("driver"):
+                raise serializers.ValidationError({"driver_id": "This field is required."})
+        return attrs
+
     def create(self, validated_data: dict[str, Any]) -> PolicyDriver:
         return PolicyDriver.objects.create(**validated_data)
 
     def update(self, instance: PolicyDriver, validated_data: dict[str, Any]) -> PolicyDriver:
+        # Don't allow changing policy or driver after creation
+        validated_data.pop("policy", None)
+        validated_data.pop("driver", None)
+        
         for attr, value in validated_data.items():
             setattr(instance, attr, value)
         instance.save()

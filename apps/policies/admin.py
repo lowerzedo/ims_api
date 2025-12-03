@@ -127,12 +127,38 @@ class PolicyFinancialAdmin(admin.ModelAdmin):
         "policy",
         "original_pure_premium",
         "latest_pure_premium",
-        "broker_fee",
-        "taxes",
-        "agency_fee",
         "total_premium",
-        "down_payment",
+        "producer_commission_amt",
+        "acct_manager_commission_amt",
+        "referral_commission_amt",
         "is_active",
     )
     search_fields = ("policy__policy_number",)
     autocomplete_fields = ("policy",)
+    fieldsets = (
+        (None, {"fields": ("policy",)}),
+        (
+            "Premium",
+            {
+                "fields": (
+                    "original_pure_premium",
+                    "latest_pure_premium",
+                    "broker_fee",
+                    "taxes",
+                    "agency_fee",
+                    "total_premium",
+                    "down_payment",
+                ),
+            },
+        ),
+        (
+            "Commissions",
+            {
+                "fields": (
+                    "producer_commission_amt",
+                    "acct_manager_commission_amt",
+                    "referral_commission_amt",
+                ),
+            },
+        ),
+    )

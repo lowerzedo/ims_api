@@ -212,11 +212,19 @@ class PolicyFinancial(BaseModel):
     agency_fee = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True)
     total_premium = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True)
     down_payment = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True)
+    producer_commission_amt = models.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        help_text="Commission amount paid to the producer.",
+    )
     acct_manager_commission_amt = models.DecimalField(
         max_digits=12,
         decimal_places=2,
         null=True,
         blank=True,
+        help_text="Commission amount paid to the account manager.",
     )
     referral_commission_amt = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True)
 

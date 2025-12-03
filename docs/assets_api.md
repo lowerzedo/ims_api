@@ -264,6 +264,50 @@ POST /api/v1/assets/policy-vehicles/
 
 ---
 
+### Update Policy Vehicle
+```
+PUT /api/v1/assets/policy-vehicles/{id}/
+PATCH /api/v1/assets/policy-vehicles/{id}/
+```
+
+Update status, dates, or garaging address. Cannot change policy or vehicle assignment.
+
+**Request Body (PATCH):**
+```json
+{
+  "status": "inactive",
+  "termination_date": "2025-06-15"
+}
+```
+
+**Updatable Fields:**
+| Field | Type | Description |
+|-------|------|-------------|
+| `status` | string | `active`, `inactive`, or `unassigned` |
+| `inception_date` | date | When vehicle was added |
+| `termination_date` | date | When vehicle was removed |
+| `garaging_address_id` | uuid | Update garaging address |
+
+**Response:** `200 OK`
+
+---
+
+### Remove Policy Vehicle (Soft Delete)
+```
+DELETE /api/v1/assets/policy-vehicles/{id}/
+```
+
+Soft deletes the assignment (sets `is_active = false`).
+
+**Response:** `204 No Content`
+
+**To view removed assignments:**
+```
+GET /api/v1/assets/policy-vehicles/?include_inactive=true
+```
+
+---
+
 ## Drivers
 
 ### List Drivers
@@ -448,6 +492,46 @@ POST /api/v1/assets/policy-drivers/
 **Error:** Returns `400` if driver already assigned to policy.
 
 **Response:** `201 Created`
+
+---
+
+### Update Policy Driver
+```
+PUT /api/v1/assets/policy-drivers/{id}/
+PATCH /api/v1/assets/policy-drivers/{id}/
+```
+
+Update status. Cannot change policy or driver assignment.
+
+**Request Body (PATCH):**
+```json
+{
+  "status": "inactive"
+}
+```
+
+**Updatable Fields:**
+| Field | Type | Description |
+|-------|------|-------------|
+| `status` | string | `active`, `inactive`, or `not_assigned` |
+
+**Response:** `200 OK`
+
+---
+
+### Remove Policy Driver (Soft Delete)
+```
+DELETE /api/v1/assets/policy-drivers/{id}/
+```
+
+Soft deletes the assignment (sets `is_active = false`).
+
+**Response:** `204 No Content`
+
+**To view removed assignments:**
+```
+GET /api/v1/assets/policy-drivers/?include_inactive=true
+```
 
 ---
 
