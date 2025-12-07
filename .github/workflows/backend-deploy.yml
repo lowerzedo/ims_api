@@ -1,0 +1,188 @@
+name: 'Backend Deploy'
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment to deploy'
+        required: true
+        default: 'dev'
+        type: choice
+        options:
+          - dev
+          - prod
+      image_tag:
+        description: 'Docker image tag (default: git SHA)'
+        required: false
+        type: string
+  repository_dispatch:
+    types: [backend-deploy]
+
+permissions:
+  contents: read
+
+env:
+  AWS_REGION: ${{ vars.AWS_REGION || 'us-east-1' }}
+
+concurrency: deploy-${{ github.event.inputs.environment || github.event.client_payload.environment || 'dev' }}
+
+jobs:
+  build-and-push:
+    name: 'Build & Push Docker Image'
+    runs-on: ubuntu-latest
+    outputs:
+      image_tag: ${{ steps.output.outputs.image_tag }}
+      image_uri: ${{ steps.output.outputs.image_uri }}
+    env:
+      ENVIRONMENT: ${{ github.event.inputs.environment || github.event.client_payload.environment || 'dev' }}
+      IMAGE_TAG: ${{ github.event.inputs.image_tag || github.event.client_payload.image_tag || github.sha }}
+    
+    steps:
+      - name: Checkout Backend Repository
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ vars.BACKEND_REPO || github.repository_owner }}/ims-backend
+          token: ${{ secrets.GITHUB_TOKEN }}
+          # If backend is in a different repo, use a PAT:
+          # token: ${{ secrets.BACKEND_REPO_TOKEN }}
+
+      - name: Configure AWS Credentials (Access Keys)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ vars.ECR_REPOSITORY_URL }}
+          tags: |
+            type=raw,value=${{ env.IMAGE_TAG }}
+            type=raw,value=latest,enable=${{ env.ENVIRONMENT == 'dev' }}
+            type=sha,prefix=
+
+      - name: Build and Push
+        id: build
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          build-args: |
+            ENVIRONMENT=${{ env.ENVIRONMENT }}
+
+      - name: Output Image URI
+        id: output
+        run: |
+          echo "image_uri=${{ vars.ECR_REPOSITORY_URL }}:${{ env.IMAGE_TAG }}" >> $GITHUB_OUTPUT
+          echo "image_tag=${{ env.IMAGE_TAG }}" >> $GITHUB_OUTPUT
+
+  deploy-dev:
+    name: 'Deploy to Dev'
+    needs: build-and-push
+    if: ${{ (github.event.inputs.environment || github.event.client_payload.environment || 'dev') == 'dev' }}
+    runs-on: ubuntu-latest
+    environment: dev
+    env:
+      IMAGE_TAG: ${{ needs.build-and-push.outputs.image_tag }}
+      IMAGE_URI: ${{ needs.build-and-push.outputs.image_uri }}
+
+    steps:
+      - name: Configure AWS Credentials (Access Keys)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Download Task Definition
+        run: |
+          aws ecs describe-task-definition \
+            --task-definition ims-dev \
+            --query taskDefinition > task-definition.json
+
+      - name: Update Task Definition Image
+        id: task-def
+        uses: aws-actions/amazon-ecs-render-task-definition@v1
+        with:
+          task-definition: task-definition.json
+          container-name: ims-backend
+          image: ${{ env.IMAGE_URI }}
+
+      - name: Deploy to ECS
+        uses: aws-actions/amazon-ecs-deploy-task-definition@v1
+        with:
+          task-definition: ${{ steps.task-def.outputs.task-definition }}
+          service: ims-dev-service
+          cluster: ims-dev-cluster
+          wait-for-service-stability: true
+
+      - name: Deployment Summary
+        run: |
+          echo "## 🚀 Deployment Complete - Dev" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- **Image:** \`${{ env.IMAGE_URI }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "- **Cluster:** ims-dev-cluster" >> $GITHUB_STEP_SUMMARY
+          echo "- **Service:** ims-dev-service" >> $GITHUB_STEP_SUMMARY
+
+  deploy-prod:
+    name: 'Deploy to Prod'
+    needs: build-and-push
+    if: ${{ (github.event.inputs.environment || github.event.client_payload.environment || '') == 'prod' }}
+    runs-on: ubuntu-latest
+    environment: production  # Requires approval
+    env:
+      IMAGE_TAG: ${{ needs.build-and-push.outputs.image_tag }}
+      IMAGE_URI: ${{ needs.build-and-push.outputs.image_uri }}
+
+    steps:
+      - name: Configure AWS Credentials (Access Keys)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Download Task Definition
+        run: |
+          aws ecs describe-task-definition \
+            --task-definition ims-prod \
+            --query taskDefinition > task-definition.json
+
+      - name: Update Task Definition Image
+        id: task-def
+        uses: aws-actions/amazon-ecs-render-task-definition@v1
+        with:
+          task-definition: task-definition.json
+          container-name: ims-backend
+          image: ${{ env.IMAGE_URI }}
+
+      - name: Deploy to ECS
+        uses: aws-actions/amazon-ecs-deploy-task-definition@v1
+        with:
+          task-definition: ${{ steps.task-def.outputs.task-definition }}
+          service: ims-prod-service
+          cluster: ims-prod-cluster
+          wait-for-service-stability: true
+
+      - name: Deployment Summary
+        run: |
+          echo "## 🚀 Deployment Complete - Production" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- **Image:** \`${{ env.IMAGE_URI }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "- **Cluster:** ims-prod-cluster" >> $GITHUB_STEP_SUMMARY
+          echo "- **Service:** ims-prod-service" >> $GITHUB_STEP_SUMMARY
+          echo "- **ALB:** Check AWS Console for endpoint" >> $GITHUB_STEP_SUMMARY
+
