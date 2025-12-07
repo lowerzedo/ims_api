@@ -41,10 +41,8 @@ jobs:
       - name: Checkout Backend Repository
         uses: actions/checkout@v4
         with:
-          repository: ${{ vars.BACKEND_REPO || github.repository_owner }}/ims-backend
+          repository: ${{ github.repository }}
           token: ${{ secrets.GITHUB_TOKEN }}
-          # If backend is in a different repo, use a PAT:
-          # token: ${{ secrets.BACKEND_REPO_TOKEN }}
 
       - name: Configure AWS Credentials (Access Keys)
         uses: aws-actions/configure-aws-credentials@v4
