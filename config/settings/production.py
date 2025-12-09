@@ -10,7 +10,7 @@ SECURE_HSTS_INCLUDE_SUBDOMAINS = True
 SECURE_HSTS_PRELOAD = True
 SECURE_REFERRER_POLICY = "strict-origin"
 
-ALLOWED_HOSTS = _get_allowed_hosts(default=[".onrender.com"])  # type: ignore # noqa: F405
+ALLOWED_HOSTS = get_allowed_hosts(default=[".onrender.com"])  # type: ignore # noqa: F405
 CSRF_TRUSTED_ORIGINS = env.list("DJANGO_CSRF_TRUSTED_ORIGINS", default=[])  # type: ignore # noqa: F405
 
 INSTALLED_APPS += ["whitenoise.runserver_nostatic"]  # type: ignore # noqa: F405

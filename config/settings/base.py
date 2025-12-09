@@ -19,7 +19,7 @@ SECRET_KEY = env.str("DJANGO_SECRET_KEY", default="django-insecure-change-me")
 DEBUG = env.bool("DJANGO_DEBUG", default=False)
 
 
-def _get_allowed_hosts(default: list[str] | None) -> list[str] | None:
+def get_allowed_hosts(default: list[str] | None) -> list[str] | None:
     """Support both DJANGO_ALLOWED_HOSTS and ALLOWED_HOSTS env vars."""
     hosts = env.list("DJANGO_ALLOWED_HOSTS", default=None)
     if not hosts:
@@ -27,7 +27,7 @@ def _get_allowed_hosts(default: list[str] | None) -> list[str] | None:
     return hosts or default
 
 
-ALLOWED_HOSTS = _get_allowed_hosts(default=["127.0.0.1", "localhost"])
+ALLOWED_HOSTS = get_allowed_hosts(default=["127.0.0.1", "localhost"])
 CSRF_TRUSTED_ORIGINS = env.list("DJANGO_CSRF_TRUSTED_ORIGINS", default=[])
 
 # Application definition
