@@ -247,8 +247,24 @@ EMAIL_BACKEND = env.str(
 )
 DEFAULT_FROM_EMAIL = env.str("DJANGO_DEFAULT_FROM_EMAIL", default="IMS <noreply@ims.local>")
 
-# CORS_ALLOWED_ORIGINS = env.list("DJANGO_CORS_ALLOWED_ORIGINS", default=['http://localhost:5173', 'http://127.0.0.1:5173'])
-CORS_ALLOWED_ORIGINS = ['http://localhost:5173', 'http://127.0.0.1:5173', 'https://ims-front-eight.vercel.app']
+def get_cors_allowed_origins(default: list[str]) -> list[str]:
+    """Support both DJANGO_CORS_ALLOWED_ORIGINS and CORS_ALLOWED_ORIGINS env vars."""
+    origins = env.list("DJANGO_CORS_ALLOWED_ORIGINS", default=None)
+    if not origins:
+        origins = env.list("CORS_ALLOWED_ORIGINS", default=None)
+    return origins or default
+
+
+DEFAULT_CORS_ALLOWED_ORIGINS = [
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
+    "https://ims-front-eight.vercel.app",
+    "https://dev.thequickagent.com",
+    "https://thequickagent.com",
+    "https://www.thequickagent.com",
+]
+
+CORS_ALLOWED_ORIGINS = get_cors_allowed_origins(DEFAULT_CORS_ALLOWED_ORIGINS)
 CORS_ALLOW_CREDENTIALS = True
 
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
