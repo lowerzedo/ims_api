@@ -3,6 +3,8 @@ from __future__ import annotations
 
 from pathlib import Path
 from datetime import timedelta
+from typing import Any
+from urllib.parse import parse_qsl, quote, unquote, urlparse
 
 import environ
 
@@ -107,8 +109,6 @@ def _resolve_database_url() -> str | None:
     password = env.str("DATABASE_PASSWORD", default="")
     port = env.int("DATABASE_PORT", default=5432)
     if host and name and user:
-        from urllib.parse import quote
-
         safe_password = quote(password, safe="")
         return f"postgres://{user}:{safe_password}@{host}:{port}/{name}"
     return None
@@ -116,8 +116,44 @@ def _resolve_database_url() -> str | None:
 
 DEFAULT_DATABASE_URL = "postgres://ims:ims@db:5432/ims"
 
+def _parse_database_url(url: str) -> dict[str, Any]:
+    """Parse a database URL into Django DATABASES config."""
+    parsed = urlparse(url)
+    scheme = (parsed.scheme or "").lower()
+
+    if scheme in {"postgres", "postgresql", "postgis"}:
+        engine = "django.db.backends.postgresql"
+        default_port: int | None = 5432
+    elif scheme in {"sqlite", "sqlite3"}:
+        engine = "django.db.backends.sqlite3"
+        default_port = None
+    else:
+        raise environ.ImproperlyConfigured(f"Unsupported database scheme: {scheme!r}")
+
+    config: dict[str, Any] = {
+        "ENGINE": engine,
+        "NAME": (parsed.path or "").lstrip("/") or "",
+    }
+
+    if scheme not in {"sqlite", "sqlite3"}:
+        config.update(
+            {
+                "USER": unquote(parsed.username or ""),
+                "PASSWORD": unquote(parsed.password or ""),
+                "HOST": parsed.hostname or "",
+                "PORT": str(parsed.port or default_port or ""),
+            }
+        )
+
+    options = dict(parse_qsl(parsed.query))
+    if options:
+        config["OPTIONS"] = options
+
+    return config
+
+
 DATABASES = {
-    "default": env.db_url(_resolve_database_url() or DEFAULT_DATABASE_URL)
+    "default": _parse_database_url(_resolve_database_url() or DEFAULT_DATABASE_URL),
 }
 
 AUTH_PASSWORD_VALIDATORS = [
