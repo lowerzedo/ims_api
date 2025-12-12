@@ -8,5 +8,7 @@ if ENVIRONMENT == "local":
     from .local import *  # noqa
 elif ENVIRONMENT == "test":
     from .test import *  # noqa
+elif ENVIRONMENT == "development":
+    from .development import *  # noqa
 elif ENVIRONMENT == "production":
     from .production import *  # noqa

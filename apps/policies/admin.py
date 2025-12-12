@@ -3,7 +3,14 @@ from __future__ import annotations
 
 from django.contrib import admin
 
-from .models import CarrierProduct, GeneralAgent, Policy, PolicyFinancial, ReferralCompany
+from .models import CarrierProduct, Coverage, GeneralAgent, Policy, PolicyFinancial, ReferralCompany
+
+
+class CoverageInline(admin.TabularInline):
+    model = Coverage
+    extra = 0
+    fields = ("coverage_type", "limits", "deductible", "is_active", "created_at", "updated_at")
+    readonly_fields = ("created_at", "updated_at")
 
 
 @admin.register(GeneralAgent)
@@ -39,6 +46,7 @@ class ReferralCompanyAdmin(admin.ModelAdmin):
 
 @admin.register(Policy)
 class PolicyAdmin(admin.ModelAdmin):
+    inlines = (CoverageInline,)
     list_display = (
         "policy_number",
         "client",
@@ -119,6 +127,14 @@ class PolicyAdmin(admin.ModelAdmin):
             },
         ),
     )
+
+
+@admin.register(Coverage)
+class CoverageAdmin(admin.ModelAdmin):
+    list_display = ("policy", "coverage_type", "limits", "deductible", "is_active")
+    search_fields = ("policy__policy_number", "policy__client__company_name", "coverage_type", "limits")
+    list_filter = ("is_active", "coverage_type")
+    autocomplete_fields = ("policy",)
 
 
 @admin.register(PolicyFinancial)

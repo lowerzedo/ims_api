@@ -93,11 +93,31 @@ TEMPLATES = [
 WSGI_APPLICATION = "config.wsgi.application"
 ASGI_APPLICATION = "config.asgi.application"
 
+def _resolve_database_url() -> str | None:
+    """Resolve DB URL with precedence: RDS_DB_URL > DATABASE_URL > DATABASE_* parts."""
+    rds_url = env.str("RDS_DB_URL", default=None)
+    if rds_url:
+        return rds_url
+    db_url = env.str("DATABASE_URL", default=None)
+    if db_url:
+        return db_url
+    host = env.str("DATABASE_HOST", default=None)
+    name = env.str("DATABASE_NAME", default=None)
+    user = env.str("DATABASE_USER", default=None)
+    password = env.str("DATABASE_PASSWORD", default="")
+    port = env.int("DATABASE_PORT", default=5432)
+    if host and name and user:
+        from urllib.parse import quote
+
+        safe_password = quote(password, safe="")
+        return f"postgres://{user}:{safe_password}@{host}:{port}/{name}"
+    return None
+
+
+DEFAULT_DATABASE_URL = "postgres://ims:ims@db:5432/ims"
+
 DATABASES = {
-    "default": env.db(
-        "DATABASE_URL",
-        default="postgres://ims:ims@db:5432/ims",
-    )
+    "default": env.db_url(_resolve_database_url() or DEFAULT_DATABASE_URL)
 }
 
 AUTH_PASSWORD_VALIDATORS = [
